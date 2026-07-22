@@ -205,6 +205,11 @@
     background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;
   }
   #datenschutzPage.open{display:block;}
+  #teilnahmePage,#nutzungPage{
+    display:none;position:fixed;inset:0;z-index:100;
+    background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;
+  }
+  #teilnahmePage.open,#nutzungPage.open{display:block;}
   .ds-bar{
     position:sticky;top:0;z-index:2;
     background:rgba(10,9,8,.96);backdrop-filter:blur(10px);
@@ -499,7 +504,16 @@
         <div class="field"><label>Nachricht</label><textarea name="nachricht" rows="4" placeholder="Besondere Wünsche?"></textarea></div>
         <div class="field" style="flex-direction:row;align-items:flex-start;gap:10px;">
           <input type="checkbox" name="dsagree" id="dsagree" style="width:20px;height:20px;margin-top:2px;flex:none;">
-          <label for="dsagree" style="font-size:13px;line-height:1.5;cursor:pointer;">Ich habe die <a href="#" onclick="openDatenschutz(event)" style="color:var(--orange-bright);text-decoration:underline;">Datenschutzerklärung</a> zur Kenntnis genommen.</label>
+          <label for="dsagree" style="font-size:13px;line-height:1.5;cursor:pointer;">Ich habe die <a href="#" onclick="openLegal('datenschutz',event)" style="color:var(--orange-bright);text-decoration:underline;">Datenschutzerklärung</a> zur Kenntnis genommen.</label>
+        </div>
+        <div class="field" style="flex-direction:row;align-items:flex-start;gap:10px;">
+          <input type="checkbox" name="nbagree" id="nbagree" style="width:20px;height:20px;margin-top:2px;flex:none;">
+          <label for="nbagree" style="font-size:13px;line-height:1.5;cursor:pointer;">Ich akzeptiere die <a href="#" onclick="openLegal('nutzungsbedingungen',event)" style="color:var(--orange-bright);text-decoration:underline;">Nutzungsbedingungen</a> und gebe die <a href="#" onclick="openLegal('teilnahmebedingungen',event)" style="color:var(--orange-bright);text-decoration:underline;">Teilnahmebedingungen</a> vor dem Spiel an alle Teilnehmenden weiter.</label>
+        </div>
+        <div id="minderjHinweis" style="display:none;font-size:13px;line-height:1.55;background:#16130f;border:1px solid var(--orange);border-radius:11px;padding:14px;margin-bottom:14px;color:var(--text);">
+          <b style="color:var(--orange-bright);">👨‍👩‍👧 Spielen Kinder oder Jugendliche mit?</b><br>
+          Dann brauchst du von jedem Elternteil eine unterschriebene Einverständniserklärung. Bitte herunterladen, ausdrucken und vor dem Spieltag einsammeln:<br>
+          <a href="Einverstaendniserklaerung-Eltern.pdf" target="_blank" rel="noopener" style="color:var(--orange-bright);text-decoration:underline;font-weight:700;">📄 Einverständniserklärung für Eltern (PDF)</a>
         </div>
         <button type="submit" class="btn btn-primary" style="width:100%;">Anfrage absenden</button>
         <p class="form-note">Mit dem Absenden öffnet sich dein E-Mail-Programm mit der fertigen Anfrage an uns. Wir behandeln deine Daten vertraulich (siehe Datenschutz). Hinweis: Die Standort-Einwilligung für das Spiel gibt jede teilnehmende Person separat in der App vor Spielbeginn – sie kann nicht durch die buchende Person für andere erteilt werden.</p>
@@ -540,7 +554,9 @@
         <a href="#preise">Preise</a>
         <a href="#anfrage">Anfrage</a>
         <a href="#impressum">Impressum</a>
-        <a href="#" onclick="openDatenschutz(event)">Datenschutz</a>
+        <a href="#" onclick="openLegal('datenschutz',event)">Datenschutz</a>
+        <a href="#" onclick="openLegal('teilnahmebedingungen',event)">Teilnahmebedingungen</a>
+        <a href="#" onclick="openLegal('nutzungsbedingungen',event)">Nutzungsbedingungen</a>
       </div>
     </div>
 
@@ -648,6 +664,21 @@
   }
 
   personenInput.addEventListener("input", berechnePreis);
+
+  // Elternformular-Hinweis bei Gruppen mit Minderjaehrigen einblenden
+  function toggleMinderjHinweis(){
+    var box = document.getElementById("minderjHinweis");
+    var sel = document.getElementById("artSelect");
+    if(!box || !sel) return;
+    var v = sel.value || "";
+    var zeigen = (v.indexOf("Schülergruppe") !== -1) || (v.indexOf("Sonstiges") !== -1);
+    box.style.display = zeigen ? "block" : "none";
+  }
+  var artSel = document.getElementById("artSelect");
+  if(artSel){
+    artSel.addEventListener("change", toggleMinderjHinweis);
+    toggleMinderjHinweis();
+  }
   artSelect.addEventListener("change", berechnePreis);
 
   // Anfrage-Formular → öffnet das E-Mail-Programm mit vorausgefüllter Mail
@@ -655,6 +686,7 @@
     e.preventDefault();
     var f=e.target;
     if(!f.dsagree.checked){ alert("Bitte bestätige, dass du die Datenschutzerklärung zur Kenntnis genommen hast."); return; }
+    if(f.nbagree && !f.nbagree.checked){ alert("Bitte akzeptiere die Nutzungsbedingungen."); return; }
 
     var modus = f.modus.value;
     // Bei "mit Spielleiter" die Entfernung prüfen und ggf. blockieren
@@ -701,7 +733,8 @@
       "Personen: "+(f.personen.value||"-")+"\n"+
       "Gruppenart: "+f.art.value+"\n"+
       "Berechneter Preis: "+preisText+"\n"+
-      "T-Shirt-Größen: "+shirts+"\n\n"+
+      "T-Shirt-Größen: "+shirts+"\n"+
+      "Nutzungsbedingungen akzeptiert: "+((f.nbagree && f.nbagree.checked) ? "ja" : "nein")+"\n\n"+
       "Nachricht:\n"+(f.nachricht.value||"-");
     window.location.href="mailto:"+ziel+"?subject="+encodeURIComponent(betreff)+"&body="+encodeURIComponent(text);
   });
@@ -885,36 +918,49 @@
   })();
 
   // ========== DATENSCHUTZ-SEITE (eigener Reiter) ==========
-  window.openDatenschutz = function(e){
+  window.openDatenschutz = function(e){ window.openLegal("datenschutz", e); };
+  window.openTeilnahme  = function(e){ window.openLegal("teilnahmebedingungen", e); };
+  window.openNutzung    = function(e){ window.openLegal("nutzungsbedingungen", e); };
+  window.closeDatenschutz = function(){ window.closeLegal(); };
+
+  // ---- Rechtsseiten: generisch oeffnen/schliessen + Direktlink per #hash ----
+  var LEGAL_PAGES = {
+    "datenschutz":  "datenschutzPage",
+    "teilnahmebedingungen": "teilnahmePage",
+    "nutzungsbedingungen":  "nutzungPage"
+  };
+  window.openLegal = function(key, e){
     if(e) e.preventDefault();
-    try{ history.replaceState(null,"","#datenschutz"); }catch(err){}
-    document.getElementById("datenschutzPage").classList.add("open");
+    var id = LEGAL_PAGES[key]; if(!id) return;
+    Object.keys(LEGAL_PAGES).forEach(function(k){
+      var n=document.getElementById(LEGAL_PAGES[k]); if(n) n.classList.remove("open");
+    });
+    var el = document.getElementById(id); if(!el) return;
+    try{ history.replaceState(null,"","#"+key); }catch(err){}
+    el.classList.add("open");
     document.body.style.overflow = "hidden";
     window.scrollTo(0,0);
-    document.getElementById("datenschutzPage").scrollTop = 0;
+    el.scrollTop = 0;
   };
-  window.closeDatenschutz = function(){
-    document.getElementById("datenschutzPage").classList.remove("open");
+  window.closeLegal = function(){
+    Object.keys(LEGAL_PAGES).forEach(function(k){
+      var n=document.getElementById(LEGAL_PAGES[k]); if(n) n.classList.remove("open");
+    });
     document.body.style.overflow = "";
-    if(location.hash === "#datenschutz"){
+    if(LEGAL_PAGES[(location.hash||"").replace("#","")]){
       history.replaceState(null,"",location.pathname+location.search);
     }
   };
-
-  // Direktaufruf per #datenschutz (z. B. Link aus der Spiel-App)
-  function checkDatenschutzHash(){
-    if(location.hash === "#datenschutz"){
-      var el = document.getElementById("datenschutzPage");
-      if(el){
-        el.classList.add("open");
-        document.body.style.overflow = "hidden";
-        window.scrollTo(0,0);
-        el.scrollTop = 0;
-      }
-    }
+  function checkLegalHash(){
+    var key=(location.hash||"").replace("#","");
+    if(LEGAL_PAGES[key]) window.openLegal(key);
   }
-  checkDatenschutzHash();
-  window.addEventListener("hashchange", checkDatenschutzHash);
+  if(document.readyState === "loading"){
+    document.addEventListener("DOMContentLoaded", checkLegalHash);
+  } else {
+    checkLegalHash();
+  }
+  window.addEventListener("hashchange", checkLegalHash);
 </script>
 
 <!-- ============ DATENSCHUTZ-SEITE ============ -->
@@ -1009,6 +1055,159 @@
     <p>Wir behalten uns vor, diese Datenschutzerklärung bei Bedarf anzupassen. Es gilt jeweils die auf unserer Website veröffentlichte Fassung.</p>
 
     <p class="ds-updated">Stand: Juli 2026 · Version 1.2</p>
+  </div>
+</div>
+
+
+<div id="teilnahmePage" role="dialog" aria-label="Teilnahmebedingungen">
+  <div class="ds-bar">
+    <div class="ds-title">Teilnahmebedingungen</div>
+    <button class="ds-close" onclick="closeLegal()">Schließen ✕</button>
+  </div>
+  <div class="ds-content">
+    <h1>Teilnahmebedingungen &amp; Haftungshinweise</h1>
+    <p>Stand: Juli 2026</p>
+    <p>Mit der Anmeldung und Teilnahme an einem Spiel von „Most Wanted – Stadtjagd“ (nachfolgend „das Spiel“) erkennen alle Teilnehmenden die nachfolgenden Bedingungen an. Bitte lies sie vor dem Spielstart aufmerksam durch.</p>
+    <h2>1. ART DES SPIELS</h2>
+    <p>Most Wanted – Stadtjagd ist ein GPS-gestütztes Verfolgungsspiel, das im öffentlichen Raum stattfindet. Die Teilnehmenden bewegen sich in verschiedenen Rollen (Target, Hunter, Spielleiter) eigenständig zu Fuß durch ein festgelegtes Stadtgebiet und nutzen dabei ihr eigenes oder ein gestelltes Smartphone. Die Hunter versuchen, die Targets zu fangen; ein Fang erfolgt durch leichtes Abschlagen mit der Hand und wird in der App bestätigt. Es darf sich nicht in Gebäuden versteckt werden; das Spiel findet ausschließlich im Freien statt.</p>
+    <h2>2. EIGENVERANTWORTUNG DER TEILNEHMENDEN</h2>
+    <p>Die Teilnahme erfolgt freiwillig und auf eigene Gefahr. Jede teilnehmende Person ist während des gesamten Spielverlaufs für ihr eigenes Verhalten und ihre eigene Sicherheit selbst verantwortlich. Insbesondere gilt:</p>
+    <ul>
+      <li>Alle Verkehrsregeln und die Straßenverkehrsordnung (StVO) sind jederzeit uneingeschränkt einzuhalten. Ampeln, Zebrastreifen und Verkehrssignale gelten immer – auch dann, wenn dadurch ein Spielvorteil verloren geht.</li>
+      <li>An Straßen, Kreuzungen und Gefahrenstellen ist zu gehen, nicht zu rennen. Kein Spielziel rechtfertigt ein Risiko im Straßenverkehr.</li>
+      <li>Der Blick auf das Smartphone darf niemals die Aufmerksamkeit auf den Verkehr oder die Umgebung ersetzen.</li>
+      <li>Bahngleise, Gewässer, Baustellen, Privatgrundstücke und abgesperrte Bereiche dürfen nicht betreten werden.</li>
+      <li>Autos und öffentliche Verkehrsmittel dürfen nur genutzt werden, wenn der Spielleiter dies ausdrücklich erlaubt.</li>
+      <li>Unbeteiligte Personen dürfen nicht behindert, bedrängt oder erschreckt werden. Auf Passantinnen und Passanten, Kinder, ältere Menschen und Tiere ist besondere Rücksicht zu nehmen.</li>
+      <li>Das Fangen erfolgt durch einmaliges, leichtes Abschlagen mit der Hand an Schulter, Arm oder Rücken – vergleichbar mit einem klassischen Fangspiel – und wird anschließend in der App bestätigt. Jede darüber hinausgehende Krafteinwirkung ist untersagt: Insbesondere ist es verboten, andere Personen festzuhalten, zu greifen, zu schubsen, zu Fall zu bringen, ihnen den Weg zu versperren oder sie in sonstiger Weise zu gefährden. Ebenso untersagt sind die Beschädigung fremden Eigentums und das Betreten verbotener oder abgesperrter Bereiche.</li>
+      <li>Den Anweisungen des Spielleiters sowie von Polizei, Ordnungskräften und Rettungsdiensten ist jederzeit Folge zu leisten.</li>
+    </ul>
+    <h2>3. GESUNDHEITLICHE EIGNUNG UND WITTERUNG</h2>
+    <p>Jede teilnehmende Person bestätigt, körperlich in der Lage zu sein, sich über einen längeren Zeitraum zu Fuß fortzubewegen. Bei gesundheitlichen Einschränkungen ist vor der Teilnahme eigenverantwortlich ärztlicher Rat einzuholen.</p>
+    <p>Das Spiel findet bei nahezu jeder Witterung im Freien statt. Die Teilnahme erfolgt auch bei Hitze, Sonne, Regen, Wind oder Kälte auf eigenes Risiko. Jede teilnehmende Person schätzt ihre eigene körperliche Belastbarkeit selbst ein, sorgt eigenverantwortlich für witterungsangepasste Kleidung, Sonnenschutz und ausreichend Trinkwasser und unterbricht oder beendet die Teilnahme rechtzeitig, wenn ihr die Belastung zu hoch wird. Ein Anspruch auf Erstattung besteht in diesem Fall nicht.</p>
+    <p>Die Teilnahme unter Einfluss von Alkohol, Medikamenten mit Einfluss auf die Reaktionsfähigkeit oder anderen berauschenden Mitteln ist nicht gestattet. Der Spielleiter kann betroffene Personen von der Teilnahme ausschließen.</p>
+    <h2>4. MINDERJÄHRIGE TEILNEHMENDE</h2>
+    <p>Teilnehmende unter 18 Jahren benötigen die Einwilligung einer/eines Erziehungsberechtigten. Bei Gruppen von Minderjährigen (z. B. Schulklassen) ist eine ausreichende Aufsicht durch volljährige, verantwortliche Begleitpersonen sicherzustellen. Der Veranstalter übernimmt keine Aufsichtspflicht über minderjährige Teilnehmende.</p>
+    <h2>5. TECHNIK, SMARTPHONE UND KEIN GARANTIEVERSPRECHEN</h2>
+    <p>Das Spiel wird über eine App auf dem Smartphone gesteuert. Ein störungsfreier Spielablauf kann nicht garantiert werden und ist nicht Gegenstand der Leistung. Der Veranstalter schuldet keine ununterbrochene Verfügbarkeit und keine bestimmte Genauigkeit der Standortbestimmung.</p>
+    <p>Insbesondere können folgende Umstände den Spielablauf beeinträchtigen, ohne dass daraus Ansprüche entstehen:</p>
+    <ul>
+      <li>Ungenauigkeiten, Verzögerungen oder Ausfälle der GPS-Ortung, etwa in engen Straßen, zwischen hohen Gebäuden oder bei ungünstiger Witterung.</li>
+      <li>Störungen oder Ausfälle des Mobilfunknetzes, der mobilen Daten oder des Internetzugangs.</li>
+      <li>Technische Defekte, Softwarefehler oder Ausfälle der App, der Server oder eingesetzter Drittdienste.</li>
+      <li>Ein leerer oder sich vorzeitig entleerender Akku sowie das automatische Sperren oder Abschalten des Geräts.</li>
+      <li>Gerätespezifische Einstellungen, Energiesparmodi oder fehlende Berechtigungen, die die Standortübermittlung unterbrechen.</li>
+    </ul>
+    <p>Jede teilnehmende Person ist selbst dafür verantwortlich, mit ausreichend geladenem Akku, funktionsfähigem Mobilfunkempfang und ausreichendem Datenvolumen am Spiel teilzunehmen sowie die erforderlichen Berechtigungen (insbesondere die Standortfreigabe) zu erteilen und während des Spiels aktiviert zu lassen. Es wird empfohlen, eine Powerbank mitzuführen.</p>
+    <p>Kann eine teilnehmende Person aus technischen Gründen, die nicht der Veranstalter zu vertreten hat, nicht oder nur eingeschränkt am Spiel teilnehmen, besteht kein Anspruch auf Erstattung oder Ersatz.</p>
+    <h2>6. MITGEBRACHTE GEGENSTÄNDE UND SACHSCHÄDEN</h2>
+    <p>Alle mitgebrachten Gegenstände befinden sich in der alleinigen Obhut und auf dem Risiko der jeweiligen teilnehmenden Person. Der Veranstalter haftet nicht für Verlust, Diebstahl oder Beschädigung mitgebrachter Gegenstände, insbesondere nicht für Smartphones, Powerbanks, Kleidung, Schuhe, Schmuck, Brillen, Taschen oder Bargeld.</p>
+    <p>Dies gilt auch für Schäden, die durch Stürze, Nässe, Herunterfallen des Geräts oder durch die Nutzung des Geräts während des Spiels entstehen. Sofern der Veranstalter Ausrüstung zur Verfügung stellt (z. B. Leihgeräte oder T-Shirts), ist diese pfleglich zu behandeln; bei vorsätzlicher oder grob fahrlässiger Beschädigung haftet die teilnehmende Person.</p>
+    <h2>7. HAFTUNG DES VERANSTALTERS</h2>
+    <p>Der Veranstalter haftet nach den gesetzlichen Bestimmungen unbeschränkt für Schäden aus der Verletzung des Lebens, des Körpers oder der Gesundheit, die auf einer vorsätzlichen oder fahrlässigen Pflichtverletzung des Veranstalters beruhen, sowie für sonstige Schäden, die auf einer vorsätzlichen oder grob fahrlässigen Pflichtverletzung beruhen.</p>
+    <p>Für leicht fahrlässig verursachte Schäden haftet der Veranstalter nur bei Verletzung einer wesentlichen Vertragspflicht (Kardinalpflicht), und in diesem Fall der Höhe nach begrenzt auf den vertragstypischen, vorhersehbaren Schaden. Eine darüber hinausgehende Haftung ist ausgeschlossen.</p>
+    <p>Der Veranstalter haftet nicht für Schäden, die durch das eigenverantwortliche Verhalten der Teilnehmenden entstehen, insbesondere nicht für Verstöße gegen die Verkehrsregeln oder die in Ziffer 2 genannten Pflichten.</p>
+    <h2>8. HAFTUNG UNTEREINANDER UND GEGENÜBER DRITTEN</h2>
+    <p>Jede teilnehmende Person haftet selbst für Schäden, die sie anderen Teilnehmenden oder unbeteiligten Dritten schuldhaft zufügt. Den Teilnehmenden ist bewusst, dass das Spiel einen leichten Körperkontakt beim Fangen vorsieht und dass sie sich dabei zügig im öffentlichen Raum bewegen. Sie nehmen die damit verbundenen allgemeinen Risiken – etwa Stolpern, Stürze oder leichte Zusammenstöße – in Kauf und verzichten insoweit auf Ansprüche gegen andere Teilnehmende, soweit diesen weder Vorsatz noch grobe Fahrlässigkeit zur Last fällt.</p>
+    <h2>9. EIGENER VERSICHERUNGSSCHUTZ</h2>
+    <p>Die Teilnehmenden sind selbst dafür verantwortlich, für ausreichenden eigenen Versicherungsschutz zu sorgen. Dringend empfohlen wird eine private Haftpflichtversicherung, da Schäden zwischen Teilnehmenden sowie Schäden an fremdem Eigentum nicht über die Versicherung des Veranstalters abgedeckt sind. Ebenso wird eine ausreichende Kranken- und gegebenenfalls Unfallversicherung empfohlen. Ein eigener Unfallversicherungsschutz für die Teilnehmenden besteht seitens des Veranstalters nicht.</p>
+    <h2>10. STANDORTDATEN UND DATENSCHUTZ</h2>
+    <p>Das Spiel verarbeitet während der Spieldauer den Standort (GPS-Position) der Teilnehmenden, um den Spielverlauf zu ermöglichen. Die Standortfreigabe erfolgt ausschließlich mit ausdrücklicher Einwilligung und nur für die Dauer des jeweiligen Spiels. Nach Spielende werden die Standortdaten nicht weiter verwendet. Einzelheiten regelt die Datenschutzerklärung, die unter der Website des Veranstalters einsehbar ist.</p>
+    <h2>11. BILD- UND TONAUFNAHMEN</h2>
+    <p>Sofern während des Spiels Foto- oder Videoaufnahmen erstellt werden sollen, erfolgt dies nur mit gesonderter Einwilligung der abgebildeten Personen. Ohne Einwilligung werden keine Aufnahmen von Teilnehmenden veröffentlicht.</p>
+    <h2>12. WEISUNGSRECHT DES SPIELLEITERS</h2>
+    <p>Der Spielleiter ist während des gesamten Spiels weisungsbefugt. Seinen Anweisungen ist unverzüglich Folge zu leisten. Er ist insbesondere berechtigt,</p>
+    <ul>
+      <li>das Spielgebiet während des laufenden Spiels anzupassen oder zu verkleinern,</li>
+      <li>Spielregeln, Spieldauer oder Rollen aus organisatorischen oder sicherheitsbezogenen Gründen zu ändern,</li>
+      <li>einzelne Teilnehmende jederzeit und ohne Vorankündigung aus Sicherheitsgründen oder bei Regelverstößen vom weiteren Spiel auszuschließen,</li>
+      <li>das Spiel jederzeit zu unterbrechen oder abzubrechen.</li>
+    </ul>
+    <p>Ein Ausschluss aus Sicherheitsgründen oder wegen eines Regelverstoßes begründet keinen Anspruch auf Erstattung des Entgelts oder auf Ersatzleistungen.</p>
+    <h2>13. NOTFÄLLE</h2>
+    <p>Bei einem Unfall, einer Verletzung oder einer sonstigen Notlage ist unverzüglich der Notruf 112 zu verständigen und anschließend der Spielleiter zu informieren. Die Kontaktdaten des Spielleiters werden vor Spielbeginn bekanntgegeben. Der Spielleiter ist während der gesamten Spieldauer erreichbar. Vor Spielbeginn wird ein Treffpunkt bekanntgegeben, an dem sich alle Teilnehmenden nach Spielende oder bei einem Abbruch einfinden.</p>
+    <h2>14. ABBRUCH UND AUSSCHLUSS</h2>
+    <p>Der Veranstalter behält sich vor, ein Spiel bei Gefahr (z. B. Unwetter, Sturm, Gewitter, Großschadenslage, behördliche Anordnung) oder aus wichtigem Grund abzubrechen oder nicht zu beginnen. Bei einem Abbruch aus Sicherheitsgründen nach Spielbeginn besteht kein Anspruch auf Erstattung; der Veranstalter bemüht sich in diesem Fall um einen Ersatztermin. Teilnehmende, die gegen diese Bedingungen verstoßen, sich oder andere gefährden oder den Spielablauf erheblich stören, können vom Spiel ausgeschlossen werden.</p>
+    <p>Ein Verstoß gegen diese Teilnahmebedingungen kann neben dem Ausschluss vom Spiel auch zivilrechtliche oder strafrechtliche Folgen nach sich ziehen. Ein Ausschluss begründet keinen Anspruch auf Erstattung des Entgelts.</p>
+    <h2>15. SALVATORISCHE KLAUSEL</h2>
+    <p>Sollte eine Bestimmung dieser Teilnahmebedingungen unwirksam sein oder werden, bleibt die Wirksamkeit der übrigen Bestimmungen davon unberührt. An die Stelle der unwirksamen Bestimmung tritt die gesetzlich zulässige Regelung, die dem Zweck der unwirksamen Bestimmung am nächsten kommt.</p>
+    <h2>16. BESTÄTIGUNG DER TEILNEHMENDEN</h2>
+    <p>Mit der Teilnahme am Spiel bestätigt jede teilnehmende Person, diese Teilnahmebedingungen gelesen und verstanden zu haben, die Sicherheitshinweise zur Kenntnis genommen zu haben, gesundheitlich zur Teilnahme in der Lage zu sein und die Teilnahme auf eigene Gefahr zu erklären. Bei minderjährigen Teilnehmenden gilt diese Bestätigung durch die erziehungsberechtigte Person.</p>
+  </div>
+</div>
+
+<div id="nutzungPage" role="dialog" aria-label="Nutzungsbedingungen">
+  <div class="ds-bar">
+    <div class="ds-title">Nutzungsbedingungen</div>
+    <button class="ds-close" onclick="closeLegal()">Schließen ✕</button>
+  </div>
+  <div class="ds-content">
+    <h1>Nutzungsbedingungen für die Spiel-Plattform</h1>
+    <p>Stand: Juli 2026</p>
+    <p>Diese Nutzungsbedingungen regeln den einmaligen Erwerb und die Nutzung eines Zugangs zur Spiel-Anwendung „Most Wanted – Stadtjagd“ (nachfolgend „die Plattform“) zwischen dem Anbieter und der Kundin/dem Kunden, die/der den Zugang erwirbt, um damit ein eigenes Spiel durchzuführen.</p>
+    <h2>1. GEGENSTAND DES ANGEBOTS</h2>
+    <p>Der Anbieter stellt eine softwarebasierte Spiel-Plattform für ein GPS-gestütztes Verfolgungsspiel („Most Wanted – Stadtjagd“) zur Verfügung. Die Kundin/der Kunde erwirbt einen einmaligen Zugang (Zugangscode), der zur Durchführung genau eines Spiels als Spielleiterin/Spielleiter berechtigt. Mit der Durchführung des Spiels ist der Vertrag erfüllt und der Zugang verbraucht. Gegenstand des Vertrages ist ausschließlich die einmalige Bereitstellung dieses Zugangs, nicht die Durchführung oder Organisation eines Spiels und kein dauerhaftes Nutzungsrecht an der Plattform.</p>
+    <h2>2. ROLLENVERTEILUNG: KUNDE IST VERANSTALTER</h2>
+    <p>Der Anbieter ist reiner Anbieter der technischen Plattform und tritt nicht als Veranstalter eines Spiels auf. Veranstalterin/Veranstalter jedes mit der Plattform durchgeführten Spiels ist allein die Kundin/der Kunde, die/der das Spiel startet und leitet.</p>
+    <p>Soweit in den Teilnahmebedingungen von „Veranstalter“ oder „Spielleiter“ die Rede ist, ist bei einem über die Plattform selbst durchgeführten Spiel die Kundin/der Kunde gemeint. Sämtliche dort dem Veranstalter zugewiesenen Rechte und Pflichten treffen in diesem Fall die Kundin/den Kunden.</p>
+    <p>Die Kundin/der Kunde entscheidet eigenverantwortlich über:</p>
+    <ul>
+      <li>die Auswahl und Festlegung des Spielgebiets sowie die Beurteilung von Gefahrenstellen,</li>
+      <li>den Zeitpunkt und die Dauer des Spiels,</li>
+      <li>die Auswahl, Einweisung und gegebenenfalls Beaufsichtigung der Teilnehmenden,</li>
+      <li>die Einholung etwaig erforderlicher behördlicher Genehmigungen für die Nutzung des öffentlichen Raums.</li>
+    </ul>
+    <p>Der Anbieter ist bei der Durchführung der Spiele nicht anwesend und nimmt keinen Einfluss auf deren Ablauf.</p>
+    <h2>3. PFLICHTEN DES KUNDEN ALS VERANSTALTER</h2>
+    <p>Mit dem Erwerb des Zugangs übernimmt die Kundin/der Kunde sämtliche Pflichten, die einer Veranstalterin/einem Veranstalter obliegen. Insbesondere verpflichtet sich die Kundin/der Kunde,</p>
+    <ul>
+      <li>das Spielgebiet vor Spielbeginn auf Gefahren zu prüfen und gefährliche Bereiche (z. B. stark befahrene Straßen, Bahngleise, Gewässer, Baustellen) auszuschließen,</li>
+      <li>allen Teilnehmenden vor dem Spiel die Teilnahmebedingungen des Anbieters zugänglich zu machen und deren Kenntnisnahme sicherzustellen,</li>
+      <li>die Teilnehmenden vor dem Spiel über die Sicherheits- und Verhaltensregeln zu informieren, insbesondere über das Verbot, sich in Gebäuden zu verstecken, sowie über die uneingeschränkte Geltung der Straßenverkehrsordnung,</li>
+      <li>einen Treffpunkt festzulegen, während der gesamten Spieldauer erreichbar zu sein und den Teilnehmenden die eigenen Kontaktdaten bekanntzugeben,</li>
+      <li>bei minderjährigen Teilnehmenden für die erforderliche Einwilligung der Erziehungsberechtigten und eine ausreichende Aufsicht durch volljährige Begleitpersonen zu sorgen,</li>
+      <li>die Einhaltung aller geltenden Gesetze, insbesondere der Straßenverkehrsordnung und datenschutzrechtlicher Vorgaben gegenüber den Teilnehmenden, sicherzustellen,</li>
+      <li>die vom Anbieter bereitgestellten Sicherheitshinweise und Teilnahmebedingungen unverändert zu verwenden und nicht zu Lasten der Teilnehmenden abzuändern.</li>
+    </ul>
+    <h2>4. BEREITGESTELLTE HILFSMITTEL</h2>
+    <p>Der Anbieter stellt der Kundin/dem Kunden die Teilnahmebedingungen sowie Sicherheitshinweise und eine Spielanleitung zur Weitergabe an die Teilnehmenden zur Verfügung. Diese dienen der Unterstützung; die Verantwortung für ihre Verwendung, ihre Vollständigkeit im konkreten Einzelfall und die Sicherheit des Spiels verbleibt bei der Kundin/dem Kunden.</p>
+    <h2>5. TECHNIK UND KEIN GARANTIEVERSPRECHEN</h2>
+    <p>Das Spiel wird über eine App auf dem Smartphone gesteuert. Ein störungsfreier Spielablauf kann nicht garantiert werden und ist nicht Gegenstand der Leistung. Der Anbieter schuldet keine ununterbrochene Verfügbarkeit und keine bestimmte Genauigkeit der Standortbestimmung.</p>
+    <p>Insbesondere begründen folgende Umstände keine Ansprüche gegen den Anbieter:</p>
+    <ul>
+      <li>Ungenauigkeiten, Verzögerungen oder Ausfälle der GPS-Ortung, etwa in engen Straßen, zwischen hohen Gebäuden oder bei ungünstiger Witterung,</li>
+      <li>Störungen oder Ausfälle des Mobilfunknetzes, der mobilen Daten oder des Internetzugangs,</li>
+      <li>technische Defekte, Softwarefehler oder Ausfälle der Endgeräte der Teilnehmenden,</li>
+      <li>leere Akkus, Energiesparmodi oder fehlende Berechtigungen, die die Standortübermittlung unterbrechen.</li>
+    </ul>
+    <p>Die Kundin/der Kunde ist verpflichtet, die Teilnehmenden vor Spielbeginn darauf hinzuweisen, mit ausreichend geladenem Akku, funktionsfähigem Mobilfunkempfang und ausreichendem Datenvolumen teilzunehmen und die Standortfreigabe während des Spiels aktiviert zu lassen.</p>
+    <h2>6. HAFTUNG DES ANBIETERS</h2>
+    <p>Der Anbieter haftet nach den gesetzlichen Bestimmungen unbeschränkt für Schäden aus der Verletzung des Lebens, des Körpers oder der Gesundheit, die auf einer vorsätzlichen oder fahrlässigen Pflichtverletzung des Anbieters beruhen, sowie bei Vorsatz und grober Fahrlässigkeit.</p>
+    <p>Bei leicht fahrlässiger Verletzung einer wesentlichen Vertragspflicht (Kardinalpflicht) ist die Haftung der Höhe nach auf den vertragstypischen, vorhersehbaren Schaden begrenzt. Im Übrigen ist die Haftung des Anbieters ausgeschlossen.</p>
+    <p>Der Anbieter haftet ausschließlich für die vertragsgemäße Bereitstellung des Zugangs zur Plattform. Er haftet insbesondere nicht für Schäden, die im Rahmen der Durchführung eines Spiels entstehen, das die Kundin/der Kunde als Veranstalter organisiert und leitet, sowie nicht für Personen- oder Sachschäden der Teilnehmenden untereinander oder gegenüber Dritten.</p>
+    <p>Der Anbieter haftet ferner nicht für Verlust oder Beschädigung von Gegenständen der Teilnehmenden, insbesondere nicht für Smartphones, Kleidung oder sonstige mitgebrachte Gegenstände.</p>
+    <h2>7. EIGENER VERSICHERUNGSSCHUTZ</h2>
+    <p>Die Kundin/der Kunde ist als Veranstalter selbst dafür verantwortlich, für ausreichenden eigenen Versicherungsschutz zu sorgen, und wird auf den Abschluss einer geeigneten Haftpflichtversicherung hingewiesen. Der Versicherungsschutz des Anbieters erstreckt sich nicht auf Spiele, die die Kundin/der Kunde eigenverantwortlich durchführt.</p>
+    <p>Die Kundin/der Kunde weist die Teilnehmenden darauf hin, dass diesen der Abschluss einer privaten Haftpflichtversicherung dringend empfohlen wird und dass seitens des Anbieters kein Unfallversicherungsschutz für die Teilnehmenden besteht.</p>
+    <h2>8. FREISTELLUNG</h2>
+    <p>Die Kundin/der Kunde stellt den Anbieter von sämtlichen Ansprüchen Dritter frei, die im Zusammenhang mit der Durchführung eines von der Kundin/dem Kunden veranstalteten Spiels gegen den Anbieter geltend gemacht werden, soweit die Kundin/der Kunde diese zu vertreten hat. Dies umfasst auch die angemessenen Kosten einer notwendigen Rechtsverteidigung.</p>
+    <h2>9. WEISUNGSRECHT UND ABBRUCH DURCH DEN KUNDEN</h2>
+    <p>Als Spielleiterin/Spielleiter ist die Kundin/der Kunde während des gesamten Spiels weisungsbefugt. Ihr/ihm obliegt es insbesondere, das Spielgebiet bei Bedarf anzupassen, einzelne Teilnehmende aus Sicherheitsgründen oder bei Regelverstößen vom weiteren Spiel auszuschließen und das Spiel bei Gefahr (z. B. Unwetter, Großschadenslage, behördliche Anordnung) zu unterbrechen oder abzubrechen.</p>
+    <p>Die Kundin/der Kunde ist verpflichtet, von diesem Recht Gebrauch zu machen, sobald die Sicherheit der Teilnehmenden oder Dritter dies erfordert. Eine Verpflichtung des Anbieters, den Spielablauf zu überwachen oder einzugreifen, besteht nicht.</p>
+    <h2>10. VERFÜGBARKEIT DER PLATTFORM</h2>
+    <p>Der Anbieter bemüht sich um eine hohe Verfügbarkeit der Plattform. Vorübergehende Einschränkungen durch Wartung, technische Störungen oder Ursachen außerhalb des Einflussbereichs des Anbieters (z. B. Ausfälle von Mobilfunk-, Internet- oder GPS-Diensten, Störungen bei eingesetzten Dienstleistern) begründen keine Haftung.</p>
+    <p>Ist die Plattform aus einem vom Anbieter zu vertretenden Grund zum vereinbarten Zeitpunkt nicht nutzbar, sodass das Spiel nicht stattfinden kann, bietet der Anbieter nach seiner Wahl einen Ersatztermin an oder erstattet das gezahlte Entgelt. Weitergehende Ansprüche, insbesondere auf Ersatz von Folgeschäden, vergeblichen Aufwendungen oder entgangenem Gewinn, sind nach Maßgabe von Ziffer 6 ausgeschlossen.</p>
+    <h2>11. ZUGANGSCODE UND NUTZUNG</h2>
+    <p>Der erworbene Zugangscode berechtigt zur Durchführung genau eines Spiels und verliert danach seine Gültigkeit. Der Zugang ist personengebunden und nicht auf Dritte übertragbar; eine Weitergabe, ein Weiterverkauf oder eine mehrfache Verwendung des Codes ist nicht gestattet. Ebenso wenig gestattet sind das Vervielfältigen, Bearbeiten, Zurückentwickeln oder gewerbliche Weitervermarkten der Plattform. Der Anbieter behält sich vor, missbräuchlich genutzte Zugänge ohne Erstattung zu sperren.</p>
+    <h2>12. STANDORTDATEN UND DATENSCHUTZ</h2>
+    <p>Die Plattform verarbeitet während eines Spiels Standortdaten der Teilnehmenden, um den Spielverlauf zu ermöglichen. Die Standortfreigabe erfolgt nur mit ausdrücklicher Einwilligung der Teilnehmenden und ausschließlich für die Dauer des jeweiligen Spiels. Nach Spielende werden die Standortdaten nicht weiter verwendet.</p>
+    <p>Verantwortliche Stelle im datenschutzrechtlichen Sinne für die Durchführung des Spiels ist die Kundin/der Kunde als Veranstalter. Der Anbieter stellt die technischen Mittel zur Einholung der erforderlichen Einwilligungen bereit. Die Kundin/der Kunde stellt sicher, dass die Teilnehmenden vor Spielbeginn über die Verarbeitung ihrer Standortdaten informiert werden und ihre Einwilligung erteilen.</p>
+    <h2>13. BILD- UND TONAUFNAHMEN</h2>
+    <p>Sofern während eines Spiels Foto- oder Videoaufnahmen erstellt werden sollen, ist die Kundin/der Kunde als Veranstalter dafür verantwortlich, die erforderlichen Einwilligungen der abgebildeten Personen einzuholen. Der Anbieter erstellt bei Spielen, die die Kundin/der Kunde durchführt, keine Aufnahmen und veröffentlicht keine solchen.</p>
+    <h2>14. SCHLUSSBESTIMMUNGEN</h2>
+    <p>Es gilt das Recht der Bundesrepublik Deutschland. Sollte eine Bestimmung dieser Nutzungsbedingungen unwirksam sein oder werden, bleibt die Wirksamkeit der übrigen Bestimmungen unberührt. An die Stelle der unwirksamen Bestimmung tritt die gesetzlich zulässige Regelung, die dem wirtschaftlichen Zweck am nächsten kommt.</p>
+    <h2>15. BESTÄTIGUNG DES KUNDEN</h2>
+    <p>Mit dem Erwerb des Zugangs bestätigt die Kundin/der Kunde, diese Nutzungsbedingungen gelesen und verstanden zu haben, die Rolle als Veranstalterin/Veranstalter des selbst durchgeführten Spiels zu übernehmen und die damit verbundenen Pflichten – insbesondere gegenüber den Teilnehmenden – zu erfüllen.</p>
   </div>
 </div>
 
